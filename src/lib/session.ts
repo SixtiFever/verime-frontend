@@ -7,7 +7,7 @@ export function getSession(): VeriMeSession | null {
     const raw = sessionStorage.getItem(SESSION_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as VeriMeSession;
-    if (!parsed.agent?.email || !parsed.organization?.name) return null;
+    if (!parsed.agent?.email || !parsed.organization?.name || !parsed.token) return null;
     return parsed;
   } catch {
     return null;

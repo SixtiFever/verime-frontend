@@ -7,19 +7,22 @@ if (!API_URL) {
 }
 
 export class ApiError extends Error {
-  constructor(message: string) {
+  status?: number;
+
+  constructor(message: string, status?: number) {
     super(message);
     this.name = "ApiError";
+    this.status = status;
   }
 }
 
 async function parseError(res: Response, fallback: string): Promise<never> {
   try {
     const body = await res.json();
-    throw new ApiError(body.error ?? fallback);
+    throw new ApiError(body.error ?? fallback, res.status);
   } catch (err) {
     if (err instanceof ApiError) throw err;
-    throw new ApiError(fallback);
+    throw new ApiError(fallback, res.status);
   }
 }
 
@@ -98,4 +101,78 @@ export async function deleteAgent(id: string): Promise<void> {
   if (!res.ok) {
     await parseError(res, "Failed to remove agent.");
   }
+}
+
+export type SendVerificationResponse = {
+  status: "sent";
+  phone: string;
+  reference?: string;
+  expiresInSeconds: number;
+};
+
+export type VerifyTokenResponse = {
+  orgId: string;
+  orgName?: string;
+  agentId: string;
+  agentName: string;
+  jobTitle?: string;
+};
+
+export type SendVerificationBody = {
+  phone: string;
+  reference?: string;
+};
+
+export type Verification = {
+  id: string;
+  customer_phone: string;
+  reference: string | null;
+  status: "sent" | "opened" | "expired";
+  sent_at: string;
+  opened_at: string | null;
+  expires_at: string;
+};
+
+export async function sendVerification(
+  token: string,
+  body: SendVerificationBody,
+): Promise<SendVerificationResponse> {
+  const res = await fetch(`${API_URL}/verifications`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (res.status === 201) {
+    return res.json() as Promise<SendVerificationResponse>;
+  }
+
+  return parseError(res, "Failed to send verification.");
+}
+
+export async function listVerifications(token: string): Promise<Verification[]> {
+  const res = await fetch(`${API_URL}/verifications`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!res.ok) {
+    await parseError(res, "Failed to load verifications.");
+  }
+
+  return res.json();
+}
+
+export async function consumeVerifyToken(token: string): Promise<VerifyTokenResponse> {
+  const res = await fetch(`${API_URL}/verify/${encodeURIComponent(token)}`);
+
+  if (res.ok) {
+    return res.json() as Promise<VerifyTokenResponse>;
+  }
+
+  return parseError(res, "This link has expired or already been used.");
 }

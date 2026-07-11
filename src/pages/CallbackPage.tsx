@@ -35,6 +35,7 @@ export function CallbackPage() {
           agent: data.agent,
           organization: data.organization,
           sso: data.sso,
+          token: data.token,
         });
         if (data.agent.role === "admin") {
           navigate("/admin", { replace: true });

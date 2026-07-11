@@ -26,6 +26,7 @@ export type VeriMeSession = {
   agent: Agent;
   organization: Organization;
   sso?: SsoConnectionInfo;
+  token: string;
 };
 
 export type ExchangeResponse = {
@@ -33,4 +34,5 @@ export type ExchangeResponse = {
   organization: Organization;
   authenticationMethod: "SSO";
   sso?: SsoConnectionInfo;
+  token: string;
 };

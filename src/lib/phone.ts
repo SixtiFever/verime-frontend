@@ -4,3 +4,8 @@ export function isValidUkPhone(value: string): boolean {
   if (digits.startsWith("0")) return digits.length === 11 && digits[1] === "7";
   return false;
 }
+
+export function normalizeUkPhone(value: string): string {
+  const digits = value.replace(/\D/g, "");
+  return digits.startsWith("44") ? `+${digits}` : `+44${digits.slice(1)}`;
+}

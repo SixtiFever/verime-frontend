@@ -403,6 +403,21 @@ body {
   background: #dcfce7;
 }
 
+.badge-sent {
+  color: #1e40af;
+  background: #dbeafe;
+}
+
+.badge-opened {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.badge-expired {
+  color: #3d4450;
+  background: #f3f4f6;
+}
+
 .admin-row-actions {
   display: flex;
   gap: 0.5rem;

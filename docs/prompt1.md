@@ -1,209 +1,208 @@
-# VeriMe Frontend — IdP Provider Display Cursor Agent Prompt
+# Frontend: Recent Verifications Audit Trail
 
-Copy everything below the line into a new Cursor agent session in your **frontend project** (separate repo).
+## Context
+
+The VeriMe backend now persists every outbound verification in Postgres and exposes a history API. Twilio is **still not implemented** — the backend logs the verify URL to the server console (SMS stub).
+
+Your job is to wire the **Recent verifications** table on `/home` to real data, and handle the small change to the `POST /verifications` response.
+
+**Backend base URL:** `http://localhost:3000` (or your existing `API_URL` constant)
+
+**Auth:** All agent endpoints require `Authorization: Bearer ${session.token}` from `sessionStorage`.
+
+---
+
+## API contract
+
+### Send verification (updated response)
+
+```
+POST /verifications
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{ "phone": "+447123456789", "reference": "POL-12345" }
+```
+
+**201 response** (now includes `id`):
+
+```json
+{
+  "id": "uuid",
+  "status": "sent",
+  "phone": "+447123456789",
+  "reference": "POL-12345",
+  "expiresInSeconds": 300
+}
+```
+
+After a successful send, **refetch** the recent verifications list (or prepend optimistically — refetch is simpler).
+
+### List recent verifications (new)
+
+```
+GET /verifications
+Authorization: Bearer <token>
+```
+
+Returns the **authenticated agent's own** verifications only (not org-wide), newest first, limit 50.
+
+**200 response:**
+
+```json
+[
+  {
+    "id": "uuid",
+    "customer_phone": "+447123456789",
+    "reference": "POL-12345",
+    "status": "sent",
+    "sent_at": "2026-07-09T20:00:00.000Z",
+    "opened_at": null,
+    "expires_at": "2026-07-09T20:05:00.000Z"
+  }
+]
+```
+
+**Status values:**
+
+| Status | Meaning | Badge suggestion |
+|--------|---------|------------------|
+| `sent` | Link created, not yet opened by customer | Pending / Sent |
+| `opened` | Customer opened the verification link | Opened |
+| `expired` | Link TTL passed without being opened | Expired |
+| `verified` | Full process complete | **Do not show yet** — backend does not set this in current slice |
 
 ---
 
 ## Your task
 
-Show the **connected IdP provider** in the VeriMe UI for signed-in admins and agents.
+### 1. Fetch recent verifications on `/home`
 
-After SSO login, display read-only context like:
-
-> **Signed in via Barclays · Microsoft Entra ID**
-
-This is a small, focused change on top of the existing login flow, admin dashboard, and agent home page. Do **not** rebuild those pages — extend them.
-
----
-
-## Context
-
-VeriMe uses **standalone WorkOS SSO** (not AuthKit). Agents and admins log in via their company's IdP (e.g. Microsoft Entra, Okta).
-
-The backend (`verime-server`) now returns IdP metadata on successful login. The frontend must:
-
-1. Store it in session
-2. Display it on `/admin` and `/home`
-
-**No new API endpoints.** No WorkOS SDK on the frontend. Data comes from `POST /auth/exchange` at login and is read from `sessionStorage` on page load.
-
----
-
-## Backend change (already done — do not reimplement)
-
-`POST /auth/exchange` now returns an additional `sso` object:
-
-```json
-{
-  "agent": { "id": "...", "email": "...", "role": "admin", ... },
-  "organization": { "id": "...", "name": "Barclays" },
-  "authenticationMethod": "SSO",
-  "sso": {
-    "connectionId": "conn_01H...",
-    "connectionName": "Barclays",
-    "connectionType": "EntraIdOIDC",
-    "providerLabel": "Microsoft Entra ID"
-  }
-}
-```
-
-| Field | Meaning |
-|-------|---------|
-| `connectionName` | Human-readable name from WorkOS (often the org/tenant name) |
-| `connectionType` | WorkOS enum (e.g. `EntraIdOIDC`, `OktaSAML`) — for debugging only |
-| `providerLabel` | Friendly label already mapped by the backend (e.g. "Microsoft Entra ID", "Okta") |
-
-Base URL: `import.meta.env.VITE_API_URL` (default `http://localhost:3000`)
-
----
-
-## What to change
-
-### 1. Extend session types
-
-Add `sso` to your existing `VeriMeSession` type (wherever session types live):
+On page load (and after successful Send Verification):
 
 ```typescript
-type SsoConnectionInfo = {
-  connectionId: string;
-  connectionName: string;
-  connectionType: string;
-  providerLabel: string;
+const session = getSession();
+if (!session?.token) {
+  navigate("/login");
+  return;
+}
+
+const res = await fetch(`${API_URL}/verifications`, {
+  headers: { Authorization: `Bearer ${session.token}` },
+});
+
+if (res.status === 401) {
+  sessionStorage.removeItem("verime_session");
+  navigate("/login");
+  return;
+}
+
+if (!res.ok) {
+  // show non-blocking error for history fetch
+  return;
+}
+
+const verifications = await res.json();
+```
+
+### 2. Replace empty state with table
+
+Use the columns already reserved in the agent dashboard design:
+
+| Phone | Reference | Status | Sent at |
+|-------|-----------|--------|---------|
+
+Map API fields:
+
+- Phone → `customer_phone`
+- Reference → `reference` or "—" if null
+- Status → badge from `status` (`sent`, `opened`, `expired`)
+- Sent at → format `sent_at` (locale date/time)
+
+If the list is empty, keep the existing empty state:
+
+> No verifications yet. Send your first verification above.
+
+### 3. Refetch after send
+
+In the Send Verification success handler, after `201`:
+
+```typescript
+await fetchRecentVerifications(); // or inline the GET call
+```
+
+### 4. Customer verify page copy (unchanged)
+
+- Org-trust framing: "This call was initiated by [Organisation]"
+- `opened` in the audit table does **not** mean show "fully verified" on the customer page
+- Customer page scope is unchanged — see `docs/frontend-verify-loading-hang-fix-prompt.md` if still fixing the loading hang
+
+---
+
+## Types (suggested)
+
+```typescript
+type VerificationStatus = "sent" | "opened" | "expired" | "verified";
+
+type VerificationRecord = {
+  id: string;
+  customer_phone: string;
+  reference: string | null;
+  status: VerificationStatus;
+  sent_at: string;
+  opened_at: string | null;
+  expires_at: string;
 };
-
-type VeriMeSession = {
-  agent: { /* existing fields */ };
-  organization: { id: string; name: string };
-  sso?: SsoConnectionInfo; // optional for backward compat with old sessions
-};
 ```
 
-Make `sso` optional so existing `sessionStorage` entries from before this change don't break the app.
-
-### 2. Update `/auth/callback` — persist `sso`
-
-After successful `POST /auth/exchange`, include `sso` when saving session:
-
-```typescript
-const data = await res.json();
-
-sessionStorage.setItem("verime_session", JSON.stringify({
-  agent: data.agent,
-  organization: data.organization,
-  sso: data.sso,
-}));
-
-if (data.agent.role === "admin") {
-  navigate("/admin");
-} else {
-  navigate("/home");
-}
-```
-
-### 3. Add a small display helper
-
-```typescript
-function formatSsoLabel(sso: SsoConnectionInfo | undefined): string | null {
-  if (!sso?.connectionName || !sso?.providerLabel) return null;
-  return `Signed in via ${sso.connectionName} · ${sso.providerLabel}`;
-}
-```
-
-### 4. Show on `/admin` (admin dashboard)
-
-In the header or just below it, render the IdP line in smaller, muted text:
-
-```
-┌─────────────────────────────────────────────────────┐
-│  {organization.name}              {admin.name} ▾   │
-│  Signed in via Barclays · Microsoft Entra ID        │
-│                                     [Log out]       │
-```
-
-Only show when `formatSsoLabel(session.sso)` returns a value. Hide the line if `sso` is missing (user logged in before this change).
-
-### 5. Show on `/home` (agent dashboard)
-
-In the session context footer (or header subline), add the same IdP line alongside existing context (`Signed in as {email}`, `Verified ✓`, etc.):
-
-```
-Signed in as jason@barclays.co
-Verified ✓
-Signed in via Barclays · Microsoft Entra ID
-```
-
-Same rule: only render when `sso` is present.
+Treat `verified` as a future status — no special UI required until backend sets it.
 
 ---
 
-## Styling guidance
+## Do NOT
 
-- Match existing login/admin/home page style
-- Muted/secondary text — informational, not a primary action
-- Do not make it clickable
-- Do not add tooltips or expandable details unless trivial
-- Keep it one line; truncate with ellipsis on narrow screens if needed
-
----
-
-## Backward compatibility
-
-| Scenario | Behaviour |
-|----------|-----------|
-| User logs in after backend deploy | `sso` stored and displayed |
-| User has old session in `sessionStorage` | App works; IdP line hidden until re-login |
-| `sso` missing from exchange response | Hide IdP line; do not error |
-
-Do **not** force re-login or clear session when `sso` is absent.
-
----
-
-## Out of scope
-
-- SSO setup / IdP configuration UI
-- Calling WorkOS APIs from the frontend
-- Persisting IdP info beyond `sessionStorage`
-- New backend endpoints
-- Mapping `connectionType` to labels on the frontend (backend already sends `providerLabel`)
-
----
-
-## Files likely to touch
-
-- Session type definition (e.g. `src/types/session.ts` or equivalent)
-- Auth callback page/component (`/auth/callback`)
-- Admin dashboard layout/header (`/admin`)
-- Agent home page footer/header (`/home`)
-
-Search the codebase for `verime_session`, `getSession`, and `/auth/exchange` to find the right files.
+- Integrate Twilio
+- Poll for status changes (optional later)
+- Show org-wide verifications (list is agent-scoped only)
+- Display the verify URL to the agent
+- Change admin dashboard unless admins also use `/home` send flow
 
 ---
 
 ## Acceptance checklist
 
-- [ ] After fresh login, `sessionStorage.verime_session` includes `sso` with all four fields
-- [ ] `/admin` shows `Signed in via {connectionName} · {providerLabel}` when `sso` is present
-- [ ] `/home` shows the same IdP line when `sso` is present
-- [ ] Old sessions without `sso` still load `/admin` and `/home` without errors
-- [ ] IdP line is hidden (not broken) when `sso` is absent
-- [ ] No new API calls added
-- [ ] Styling consistent with existing pages
+- [ ] `/home` fetches `GET /verifications` on load with Bearer token
+- [ ] Table shows phone, reference, status badge, sent_at
+- [ ] Empty state when array is empty
+- [ ] After successful send, list refreshes and new row appears as `sent`
+- [ ] Opening customer link (backend) eventually shows row as `opened` after refetch
+- [ ] 401 on list fetch clears session and redirects to login
+- [ ] No "verified" badge until backend supports it
 
 ---
 
-## Test plan
+## Manual test
 
-1. Ensure `verime-server` is running with the latest `POST /auth/exchange` (returns `sso`)
-2. Clear `sessionStorage` (or use incognito)
-3. Log in as an **admin** via SSO → confirm IdP line on `/admin`
-4. Log out, log in as an **agent** → confirm IdP line on `/home`
-5. Manually remove `sso` from stored session JSON → confirm pages still render, IdP line hidden
-6. Re-login → confirm IdP line reappears
+1. Backend running, agent logged in with fresh session (JWT)
+2. `/home` shows empty state or existing rows
+3. Send verification → row appears with status `sent`
+4. Open verify URL from backend log → customer page works
+5. Refresh `/home` → row status `opened`, `opened_at` populated in API (display optional)
+
+---
+
+## Reference: backend repo
+
+```
+verime-server/
+  migrations/1783624000000_create-verifications-table.js
+  src/verification-store.ts          ← Postgres audit queries
+  src/routes/verifications.ts        ← POST, GET list, GET /verify/:token
+  docs/frontend-verification-integration-prompt.md
+```
 
 ---
 
 ## Summary
 
-Implement IdP provider display for signed-in admins and agents. Store `sso` from `POST /auth/exchange` in session, extend types, and show `Signed in via {connectionName} · {providerLabel}` on `/admin` and `/home`. Keep changes minimal; treat missing `sso` as a no-op.
-
-Backend auth uses **standalone WorkOS SSO**, **not** AuthKit. Do not integrate WorkOS on the frontend.
+Wire the Recent verifications table on `/home` to `GET /verifications`. Refetch after send. Show honest status badges (`sent` / `opened` / `expired`). SMS remains a backend log stub — no frontend changes for delivery.

@@ -1,20 +1,59 @@
-import { useState, type FormEvent } from "react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useNavigate } from "react-router-dom";
 import { AgentLayout } from "../components/AgentLayout";
-import { isValidUkPhone } from "../lib/phone";
-import { formatSsoLabel } from "../lib/format";
-import { getSession } from "../lib/session";
-
-const STUB_SUCCESS_MESSAGE =
-  "SMS verification is not yet available. This will send a verification text to the customer.";
+import { ApiError, listVerifications, sendVerification, type Verification } from "../lib/api";
+import {
+  formatCustomerVerificationStatus,
+  formatDateTime,
+  formatSsoLabel,
+} from "../lib/format";
+import { isValidUkPhone, normalizeUkPhone } from "../lib/phone";
+import { clearSession, getSession } from "../lib/session";
 
 export function HomePage() {
   const session = getSession();
+  const navigate = useNavigate();
 
   const [phone, setPhone] = useState("");
   const [reference, setReference] = useState("");
   const [phoneError, setPhoneError] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [verifications, setVerifications] = useState<Verification[]>([]);
+  const [verificationsLoading, setVerificationsLoading] = useState(true);
+  const [verificationsError, setVerificationsError] = useState<string | null>(null);
+
+  const fetchVerifications = useCallback(async () => {
+    const token = session?.token;
+    if (!token) return;
+
+    setVerificationsLoading(true);
+    setVerificationsError(null);
+
+    try {
+      const data = await listVerifications(token);
+      setVerifications(data);
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 401) {
+        clearSession();
+        navigate("/login");
+        return;
+      }
+
+      setVerificationsError(
+        err instanceof ApiError
+          ? err.message
+          : "Failed to load verifications. Check your connection.",
+      );
+    } finally {
+      setVerificationsLoading(false);
+    }
+  }, [navigate, session?.token]);
+
+  useEffect(() => {
+    fetchVerifications();
+  }, [fetchVerifications]);
 
   if (!session) {
     return null;
@@ -45,13 +84,40 @@ export function HomePage() {
       return;
     }
 
+    const token = session?.token;
+    if (!token) {
+      clearSession();
+      navigate("/login");
+      return;
+    }
+
     setPhoneError(null);
+    setErrorMessage(null);
+    setSuccessMessage(null);
     setSubmitting(true);
 
-    await new Promise((resolve) => setTimeout(resolve, 400));
+    try {
+      await sendVerification(token, {
+        phone: normalizeUkPhone(phone),
+        reference: reference.trim() || undefined,
+      });
+      setSuccessMessage("Verification link sent to customer.");
+      await fetchVerifications();
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 401) {
+        clearSession();
+        navigate("/login");
+        return;
+      }
 
-    setSuccessMessage(STUB_SUCCESS_MESSAGE);
-    setSubmitting(false);
+      setErrorMessage(
+        err instanceof ApiError
+          ? err.message
+          : "Failed to send verification. Check your connection.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -104,6 +170,8 @@ export function HomePage() {
             />
             <p className="admin-field-hint">Optional — helps identify the customer on your call</p>
 
+            {errorMessage && <div className="auth-error">{errorMessage}</div>}
+
             <div className="agent-form-actions">
               <button type="submit" className="auth-button" disabled={!canSubmit}>
                 {submitting ? "Sending…" : "Send Verification"}
@@ -115,6 +183,7 @@ export function HomePage() {
 
       <section className="agent-section">
         <h2 className="admin-section-title">Recent verifications</h2>
+        {verificationsError && <div className="auth-error">{verificationsError}</div>}
         <div className="admin-table-wrap">
           <table className="admin-table">
             <thead>
@@ -126,14 +195,37 @@ export function HomePage() {
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td colSpan={4} className="agent-empty-cell">
-                  <div className="admin-empty">
-                    <p>No verifications yet.</p>
-                    <p>Send your first verification above.</p>
-                  </div>
-                </td>
-              </tr>
+              {verificationsLoading ? (
+                <tr>
+                  <td colSpan={4} className="agent-empty-cell">
+                    <div className="admin-empty">
+                      <p>Loading verifications…</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : verifications.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="agent-empty-cell">
+                    <div className="admin-empty">
+                      <p>No verifications yet.</p>
+                      <p>Send your first verification above.</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                verifications.map((verification) => (
+                  <tr key={verification.id}>
+                    <td>{verification.customer_phone}</td>
+                    <td>{verification.reference ?? "—"}</td>
+                    <td>
+                      <span className={`badge badge-${verification.status}`}>
+                        {formatCustomerVerificationStatus(verification.status)}
+                      </span>
+                    </td>
+                    <td>{formatDateTime(verification.sent_at)}</td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
