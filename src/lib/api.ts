@@ -167,12 +167,22 @@ export async function listVerifications(token: string): Promise<Verification[]> 
   return res.json();
 }
 
-export async function consumeVerifyToken(token: string): Promise<VerifyTokenResponse> {
-  const res = await fetch(`${API_URL}/verify/${encodeURIComponent(token)}`);
+export async function submitVerifyCode(code: string): Promise<VerifyTokenResponse> {
+  const res = await fetch(`${API_URL}/verify-code`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code: code.trim() }),
+  });
 
   if (res.ok) {
     return res.json() as Promise<VerifyTokenResponse>;
   }
 
-  return parseError(res, "This link has expired or already been used.");
+  const fallbacks: Record<number, string> = {
+    400: "Please enter a valid 6-digit code.",
+    410: "This code is invalid or has expired.",
+    429: "Too many attempts. Please wait a few minutes and try again.",
+  };
+
+  return parseError(res, fallbacks[res.status] ?? "Something went wrong.");
 }

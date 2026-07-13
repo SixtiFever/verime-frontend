@@ -90,6 +90,12 @@ body {
   color: #9ca3af;
 }
 
+.verify-code-input {
+  font-size: 1.5rem;
+  text-align: center;
+  letter-spacing: 0.25em;
+}
+
 .auth-button {
   margin-top: 0.5rem;
   padding: 0.625rem 1rem;

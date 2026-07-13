@@ -101,7 +101,7 @@ export function HomePage() {
         phone: normalizeUkPhone(phone),
         reference: reference.trim() || undefined,
       });
-      setSuccessMessage("Verification link sent to customer.");
+      setSuccessMessage("Verification sent to customer.");
       await fetchVerifications();
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {

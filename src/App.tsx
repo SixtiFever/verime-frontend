@@ -7,7 +7,7 @@ import { LoginPage } from "./pages/LoginPage";
 import { AddAgentPage } from "./pages/admin/AddAgentPage";
 import { AdminDashboardPage } from "./pages/admin/AdminDashboardPage";
 import { EditAgentPage } from "./pages/admin/EditAgentPage";
-import { VerifyPage } from "./pages/VerifyPage";
+import { VerifyCodePage } from "./pages/VerifyCodePage";
 
 export default function App() {
   return (
@@ -15,7 +15,7 @@ export default function App() {
       <Route path="/" element={<Navigate to="/login" replace />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/auth/callback" element={<CallbackPage />} />
-      <Route path="/verify/:token" element={<VerifyPage />} />
+      <Route path="/v" element={<VerifyCodePage />} />
       <Route element={<ProtectedRoute />}>
         <Route path="/home" element={<HomePage />} />
       </Route>
