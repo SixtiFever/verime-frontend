@@ -15,6 +15,16 @@ export default function App() {
       <Route path="/" element={<Navigate to="/login" replace />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/auth/callback" element={<CallbackPage />} />
+      <Route
+        path="/verify/*"
+        element={
+          <Navigate
+            to="/v"
+            replace
+            state={{ message: "Enter the verification code from your SMS" }}
+          />
+        }
+      />
       <Route path="/v" element={<VerifyCodePage />} />
       <Route element={<ProtectedRoute />}>
         <Route path="/home" element={<HomePage />} />

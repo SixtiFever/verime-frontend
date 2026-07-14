@@ -9,6 +9,7 @@ import {
 } from "../lib/format";
 import { isValidUkPhone, normalizeUkPhone } from "../lib/phone";
 import { clearSession, getSession } from "../lib/session";
+import { VERIFY_CODE_EXPIRY_MINUTES, VERIFY_PAGE_DISPLAY } from "../lib/constants";
 
 export function HomePage() {
   const session = getSession();
@@ -19,6 +20,7 @@ export function HomePage() {
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [expiryMinutes, setExpiryMinutes] = useState(VERIFY_CODE_EXPIRY_MINUTES);
   const [submitting, setSubmitting] = useState(false);
   const [verifications, setVerifications] = useState<Verification[]>([]);
   const [verificationsLoading, setVerificationsLoading] = useState(true);
@@ -94,14 +96,16 @@ export function HomePage() {
     setPhoneError(null);
     setErrorMessage(null);
     setSuccessMessage(null);
+    setExpiryMinutes(VERIFY_CODE_EXPIRY_MINUTES);
     setSubmitting(true);
 
     try {
-      await sendVerification(token, {
+      const result = await sendVerification(token, {
         phone: normalizeUkPhone(phone),
         reference: reference.trim() || undefined,
       });
       setSuccessMessage("Verification sent to customer.");
+      setExpiryMinutes(Math.round(result.expiresInSeconds / 60) || VERIFY_CODE_EXPIRY_MINUTES);
       await fetchVerifications();
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
@@ -128,6 +132,24 @@ export function HomePage() {
           <button type="button" className="admin-banner-dismiss" onClick={() => setSuccessMessage(null)}>
             ×
           </button>
+        </div>
+      )}
+
+      {successMessage && (
+        <div className="agent-coaching-hint">
+          <p>
+            <strong>Code sent.</strong> Remind the customer: VeriMe never sends links — they should
+            type <strong>{VERIFY_PAGE_DISPLAY}</strong> in their browser and enter the code. The code
+            expires in <strong>{expiryMinutes} minutes</strong>.
+          </p>
+          <details className="agent-coaching-script">
+            <summary>What to say</summary>
+            <p>
+              &ldquo;I&apos;m sending you a six-digit code by text now. VeriMe never sends links —
+              please don&apos;t tap anything in the message. Open your browser, type{" "}
+              {VERIFY_PAGE_DISPLAY} yourself, and enter the code. I&apos;ll wait.&rdquo;
+            </p>
+          </details>
         </div>
       )}
 

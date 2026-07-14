@@ -1,10 +1,8 @@
-import { type FormEvent, useEffect, useRef, useState } from "react";
+import { type FormEvent, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { AuthLayout } from "../components/AuthLayout";
 import { ApiError, submitVerifyCode, type VerifyTokenResponse } from "../lib/api";
-
-interface OTPCredential extends Credential {
-  code: string;
-}
+import { VERIFY_PAGE_DISPLAY } from "../lib/constants";
 
 type PageState =
   | { status: "form" }
@@ -12,37 +10,12 @@ type PageState =
   | { status: "error"; message: string };
 
 export function VerifyCodePage() {
+  const location = useLocation();
+  const redirectMessage = (location.state as { message?: string } | null)?.message;
+
   const [code, setCode] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [state, setState] = useState<PageState>({ status: "form" });
-  const formRef = useRef<HTMLFormElement>(null);
-
-  useEffect(() => {
-    if (!("OTPCredential" in window)) return;
-
-    const ac = new AbortController();
-    const form = formRef.current;
-    if (form) {
-      form.addEventListener("submit", () => ac.abort(), { once: true });
-    }
-
-    navigator.credentials
-      .get({
-        otp: { transport: ["sms"] },
-        signal: ac.signal,
-      } as CredentialRequestOptions)
-      .then((otp) => {
-        const cred = otp as OTPCredential | null;
-        if (cred?.code) {
-          setCode(cred.code);
-        }
-      })
-      .catch(() => {
-        // user dismissed or unsupported — ignore
-      });
-
-    return () => ac.abort();
-  }, []);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -81,8 +54,7 @@ export function VerifyCodePage() {
     return (
       <AuthLayout title="VeriMe">
         <p className="auth-subtitle">
-          <strong>Verified</strong> — You are speaking with{" "}
-          <strong>{agentName}</strong>
+          You are speaking with <strong>{agentName}</strong>
           {orgName ? (
             <>
               {" "}
@@ -99,15 +71,25 @@ export function VerifyCodePage() {
 
   return (
     <AuthLayout title="Enter your verification code">
-      <p className="auth-subtitle">
-        VeriMe will never ask for your password, PIN, or personal details.
-      </p>
+      {redirectMessage && (
+        <div className="verify-redirect-banner">{redirectMessage}</div>
+      )}
+
+      <div className="verify-trust-copy">
+        <p>VeriMe will never send you a link.</p>
+        <p>You should have typed this address yourself.</p>
+        <p className="verify-page-url">{VERIFY_PAGE_DISPLAY}</p>
+        <p>We will never ask for your password, PIN, or personal details.</p>
+        <p className="verify-safety-line">
+          Didn&apos;t expect this call? Hang up and verify independently.
+        </p>
+      </div>
 
       {state.status === "error" && (
         <div className="auth-error">{state.message}</div>
       )}
 
-      <form ref={formRef} className="auth-form" onSubmit={handleSubmit}>
+      <form className="auth-form" onSubmit={handleSubmit}>
         <label className="auth-label" htmlFor="verify-code">
           6-digit code
         </label>

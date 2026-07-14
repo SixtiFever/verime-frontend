@@ -96,6 +96,43 @@ body {
   letter-spacing: 0.25em;
 }
 
+.verify-redirect-banner {
+  margin: 0 0 1rem;
+  padding: 0.625rem 0.75rem;
+  font-size: 0.875rem;
+  color: #1e40af;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+}
+
+.verify-trust-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.verify-trust-copy p {
+  margin: 0;
+  color: #5c6370;
+  font-size: 0.9375rem;
+}
+
+.verify-page-url {
+  font-family: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, monospace;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #1a1a2e;
+  word-break: break-all;
+}
+
+.verify-safety-line {
+  margin-top: 0.25rem !important;
+  font-weight: 500;
+  color: #3d4450 !important;
+}
+
 .auth-button {
   margin-top: 0.5rem;
   padding: 0.625rem 1rem;
@@ -340,6 +377,43 @@ body {
   background: none;
   border: none;
   cursor: pointer;
+}
+
+.agent-coaching-hint {
+  margin-bottom: 1.5rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  color: #3d4450;
+  background: #f8fafc;
+  border: 1px solid #e2e4e9;
+  border-radius: 6px;
+}
+
+.agent-coaching-hint p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.agent-coaching-script {
+  margin-top: 0.75rem;
+}
+
+.agent-coaching-script summary {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #2563eb;
+  cursor: pointer;
+}
+
+.agent-coaching-script p {
+  margin: 0.5rem 0 0;
+  padding: 0.625rem 0.75rem;
+  font-size: 0.8125rem;
+  color: #5c6370;
+  background: #fff;
+  border: 1px solid #e2e4e9;
+  border-radius: 4px;
+  line-height: 1.5;
 }
 
 .admin-table-wrap {
