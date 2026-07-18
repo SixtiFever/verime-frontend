@@ -271,6 +271,86 @@ body {
   min-width: 0;
 }
 
+.admin-header-brand-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.admin-header-brand-text {
+  min-width: 0;
+}
+
+.org-logo {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid #e2e4e9;
+  border-radius: 8px;
+}
+
+.org-logo-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.org-logo-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #5c6370;
+  background: #eef0f3;
+}
+
+.org-logo-upload {
+  margin-top: 0.5rem;
+}
+
+.org-logo-upload-label {
+  margin: 0 0 0.375rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #5c6370;
+}
+
+.org-logo-upload-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.org-logo-upload-input {
+  display: none;
+}
+
+.org-logo-upload-btn,
+.org-logo-remove-btn {
+  margin-top: 0;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.8125rem;
+}
+
+.org-logo-upload-hint {
+  margin: 0.375rem 0 0;
+  max-width: 36rem;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: #8b919a;
+}
+
+.org-logo-upload-error {
+  margin-top: 0.5rem;
+}
+
 .admin-org-name {
   margin: 0;
   font-size: 1.25rem;
@@ -621,6 +701,11 @@ body {
     flex-direction: column;
     align-items: flex-start;
     padding: 1rem;
+  }
+
+  .admin-header-brand-row {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
   .admin-content {

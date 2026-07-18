@@ -33,7 +33,10 @@ export function CallbackPage() {
       .then((data) => {
         setSession({
           agent: data.agent,
-          organization: data.organization,
+          organization: {
+            ...data.organization,
+            logoUrl: data.organization.logoUrl ?? null,
+          },
           sso: data.sso,
           token: data.token,
         });

@@ -21,3 +21,12 @@ export function setSession(session: VeriMeSession): void {
 export function clearSession(): void {
   sessionStorage.removeItem(SESSION_KEY);
 }
+
+export function updateSessionLogo(logoUrl: string | null): void {
+  const session = getSession();
+  if (!session) return;
+  setSession({
+    ...session,
+    organization: { ...session.organization, logoUrl },
+  });
+}

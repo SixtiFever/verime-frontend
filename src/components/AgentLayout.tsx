@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { clearSession, getSession } from "../lib/session";
+import { OrgLogo } from "./OrgLogo";
 
 type AgentLayoutProps = {
   children: ReactNode;
@@ -24,7 +25,12 @@ export function AgentLayout({ children }: AgentLayoutProps) {
   return (
     <div className="admin-page">
       <header className="admin-header">
-        <h1 className="admin-org-name">{organization.name}</h1>
+        <div className="admin-header-brand">
+          <div className="admin-header-brand-row">
+            <OrgLogo name={organization.name} logoUrl={organization.logoUrl ?? null} />
+            <h1 className="admin-org-name">{organization.name}</h1>
+          </div>
+        </div>
         <div className="admin-header-actions">
           <div className="agent-header-user">
             <span className="admin-user-name">{agent.name}</span>

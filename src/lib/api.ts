@@ -167,6 +167,74 @@ export async function listVerifications(token: string): Promise<Verification[]> 
   return res.json();
 }
 
+export type UploadOrganizationLogoResponse = {
+  logoUrl: string;
+};
+
+export type OrganizationDetails = {
+  id: string;
+  name: string;
+  logoUrl: string | null;
+  logoUpdatedAt: string | null;
+};
+
+export async function getOrganization(
+  organizationId: string,
+  token: string,
+): Promise<OrganizationDetails> {
+  const res = await fetch(`${API_URL}/organizations/${encodeURIComponent(organizationId)}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!res.ok) {
+    await parseError(res, "Failed to load organization.");
+  }
+
+  return res.json();
+}
+
+export async function uploadOrganizationLogo(
+  organizationId: string,
+  token: string,
+  file: File,
+): Promise<UploadOrganizationLogoResponse> {
+  const formData = new FormData();
+  formData.append("logo", file);
+
+  const res = await fetch(`${API_URL}/organizations/${encodeURIComponent(organizationId)}/logo`, {
+    method: "PUT",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: formData,
+  });
+
+  if (!res.ok) {
+    await parseError(res, "Logo upload failed.");
+  }
+
+  return res.json();
+}
+
+export async function deleteOrganizationLogo(organizationId: string, token: string): Promise<void> {
+  const res = await fetch(`${API_URL}/organizations/${encodeURIComponent(organizationId)}/logo`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (res.status === 204) {
+    return;
+  }
+
+  if (!res.ok) {
+    await parseError(res, "Logo removal failed.");
+  }
+}
+
 export async function submitVerifyCode(code: string): Promise<VerifyTokenResponse> {
   const res = await fetch(`${API_URL}/verify-code`, {
     method: "POST",
