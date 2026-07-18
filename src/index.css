@@ -312,7 +312,7 @@ body {
 }
 
 .org-logo-upload {
-  margin-top: 0.5rem;
+  margin-top: 0;
 }
 
 .org-logo-upload-label {
@@ -349,6 +349,71 @@ body {
 
 .org-logo-upload-error {
   margin-top: 0.5rem;
+}
+
+.header-menu {
+  position: relative;
+}
+
+.header-menu-toggle {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0.5rem;
+  background: #fff;
+  border: 1px solid #e2e4e9;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.header-menu-toggle:hover {
+  background: #f4f5f7;
+}
+
+.header-menu-bar {
+  display: block;
+  width: 100%;
+  height: 2px;
+  background: #1a1a2e;
+  border-radius: 1px;
+}
+
+.header-menu-panel {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  z-index: 100;
+  width: min(20rem, calc(100vw - 2rem));
+  padding: 1rem;
+  background: #fff;
+  border: 1px solid #e2e4e9;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.header-menu-user {
+  margin: 0 0 0.75rem;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: #1a1a2e;
+}
+
+.header-menu-section {
+  margin-bottom: 0.75rem;
+}
+
+.header-menu-divider {
+  height: 1px;
+  margin: 0.75rem 0;
+  background: #e2e4e9;
+}
+
+.header-menu-logout {
+  width: 100%;
+  margin-top: 0;
 }
 
 .admin-org-name {

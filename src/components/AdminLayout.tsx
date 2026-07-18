@@ -1,17 +1,15 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { useNavigate } from "react-router-dom";
 import { getOrganization } from "../lib/api";
 import { formatSsoLabel } from "../lib/format";
-import { clearSession, getSession, updateSessionLogo } from "../lib/session";
+import { getSession, updateSessionLogo } from "../lib/session";
+import { AdminHeaderMenu } from "./AdminHeaderMenu";
 import { OrgLogo } from "./OrgLogo";
-import { OrgLogoUpload } from "./OrgLogoUpload";
 
 type AdminLayoutProps = {
   children: ReactNode;
 };
 
 export function AdminLayout({ children }: AdminLayoutProps) {
-  const navigate = useNavigate();
   const session = getSession();
   const organizationId = session?.organization.id;
   const token = session?.token;
@@ -56,11 +54,6 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   const { agent, organization } = session;
   const ssoLabel = formatSsoLabel(session.sso);
 
-  function handleLogout() {
-    clearSession();
-    navigate("/login", { replace: true });
-  }
-
   function handleLogoChange(nextLogoUrl: string | null) {
     setLogoUrl(nextLogoUrl);
   }
@@ -74,21 +67,18 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             <div className="admin-header-brand-text">
               <h1 className="admin-org-name">{organization.name}</h1>
               {ssoLabel && <p className="session-sso-label">{ssoLabel}</p>}
-              <OrgLogoUpload
-                orgId={organization.id}
-                orgName={organization.name}
-                token={session.token}
-                logoUrl={logoUrl}
-                onLogoChange={handleLogoChange}
-              />
             </div>
           </div>
         </div>
         <div className="admin-header-actions">
-          <span className="admin-user-name">{agent.name}</span>
-          <button type="button" className="auth-button auth-button-secondary admin-logout" onClick={handleLogout}>
-            Log out
-          </button>
+          <AdminHeaderMenu
+            agentName={agent.name}
+            orgId={organization.id}
+            orgName={organization.name}
+            token={session.token}
+            logoUrl={logoUrl}
+            onLogoChange={handleLogoChange}
+          />
         </div>
       </header>
       <main className="admin-content">{children}</main>
